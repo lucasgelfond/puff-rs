@@ -1,0 +1,3 @@
+This is a bit of an experiment in agent-based coding. I have a little Rust-based Turbopuffer project I'd started on, but the only existing client I see, the unofficial [ragkit/turbopuffer-client](https://github.com/ragkit/turbopuffer-client) looks unmaintained and untyped. All of the existing clients are open source, making this a pretty agent-tractable problem. 
+
+For dev setup, I had Claude write an AGENTS.md that specified where the docs are, and I manually cloned all of the other clients to `other-clients/`, which I .gitignore-d. Then I just had Claude Opus 4.5 rip it with those instructions. 
