@@ -149,6 +149,13 @@ mod tests {
     }
 
     #[test]
+    fn test_vector_knn_serialization() {
+        let r = RankBy::vector_knn("embedding", vec![1.0, 2.0, 3.0]);
+        let json = serde_json::to_string(&r).unwrap();
+        assert_eq!(json, r#"["embedding","kNN",[1.0,2.0,3.0]]"#);
+    }
+
+    #[test]
     fn test_bm25_serialization() {
         let r = RankBy::bm25("content", "quick fox");
         let json = serde_json::to_string(&r).unwrap();
@@ -156,10 +163,33 @@ mod tests {
     }
 
     #[test]
-    fn test_attribute_serialization() {
+    fn test_bm25_with_params_serialization() {
+        let r = RankBy::bm25_with_params("content", "quick", Bm25Params {
+            last_as_prefix: Some(true),
+        });
+        let json = serde_json::to_string(&r).unwrap();
+        assert_eq!(json, r#"["content","BM25","quick",{"last_as_prefix":true}]"#);
+    }
+
+    #[test]
+    fn test_attribute_asc_serialization() {
+        let r = RankBy::asc("timestamp");
+        let json = serde_json::to_string(&r).unwrap();
+        assert_eq!(json, r#"["timestamp","asc"]"#);
+    }
+
+    #[test]
+    fn test_attribute_desc_serialization() {
         let r = RankBy::desc("timestamp");
         let json = serde_json::to_string(&r).unwrap();
         assert_eq!(json, r#"["timestamp","desc"]"#);
+    }
+
+    #[test]
+    fn test_attribute_with_order_serialization() {
+        let r = RankBy::attribute("score", Order::Desc);
+        let json = serde_json::to_string(&r).unwrap();
+        assert_eq!(json, r#"["score","desc"]"#);
     }
 
     #[test]
@@ -173,9 +203,39 @@ mod tests {
     }
 
     #[test]
+    fn test_max_serialization() {
+        let r = RankBy::max(vec![
+            RankBy::bm25("title", "query"),
+            RankBy::vector("vec", vec![0.1, 0.2]),
+        ]);
+        let json = serde_json::to_string(&r).unwrap();
+        assert_eq!(json, r#"["Max",[["title","BM25","query"],["vec","ANN",[0.1,0.2]]]]"#);
+    }
+
+    #[test]
     fn test_product_serialization() {
         let r = RankBy::product(2.0, RankBy::bm25("title", "fox"));
         let json = serde_json::to_string(&r).unwrap();
         assert_eq!(json, r#"["Product",2.0,["title","BM25","fox"]]"#);
+    }
+
+    #[test]
+    fn test_nested_combinators() {
+        let r = RankBy::sum(vec![
+            RankBy::product(2.0, RankBy::bm25("title", "query")),
+            RankBy::product(1.0, RankBy::bm25("content", "query")),
+        ]);
+        let json = serde_json::to_string(&r).unwrap();
+        assert_eq!(
+            json,
+            r#"["Sum",[["Product",2.0,["title","BM25","query"]],["Product",1.0,["content","BM25","query"]]]]"#
+        );
+    }
+
+    #[test]
+    fn test_empty_vector() {
+        let r = RankBy::vector("vec", vec![]);
+        let json = serde_json::to_string(&r).unwrap();
+        assert_eq!(json, r#"["vec","ANN",[]]"#);
     }
 }

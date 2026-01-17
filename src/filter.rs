@@ -340,6 +340,33 @@ mod tests {
     }
 
     #[test]
+    fn test_not_eq_serialization() {
+        let f = Filter::not_eq("status", "deleted");
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["status","NotEq","deleted"]"#);
+    }
+
+    #[test]
+    fn test_comparison_ops() {
+        assert_eq!(
+            serde_json::to_string(&Filter::lt("age", 30)).unwrap(),
+            r#"["age","Lt",30]"#
+        );
+        assert_eq!(
+            serde_json::to_string(&Filter::lte("age", 30)).unwrap(),
+            r#"["age","Lte",30]"#
+        );
+        assert_eq!(
+            serde_json::to_string(&Filter::gt("score", 0.5)).unwrap(),
+            r#"["score","Gt",0.5]"#
+        );
+        assert_eq!(
+            serde_json::to_string(&Filter::gte("score", 0.5)).unwrap(),
+            r#"["score","Gte",0.5]"#
+        );
+    }
+
+    #[test]
     fn test_and_serialization() {
         let f = Filter::and(vec![
             Filter::eq("name", "foo"),
@@ -350,9 +377,102 @@ mod tests {
     }
 
     #[test]
+    fn test_or_serialization() {
+        let f = Filter::or(vec![
+            Filter::eq("role", "admin"),
+            Filter::eq("role", "mod"),
+        ]);
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["Or",[["role","Eq","admin"],["role","Eq","mod"]]]"#);
+    }
+
+    #[test]
+    fn test_not_serialization() {
+        let f = Filter::not(Filter::eq("deleted", true));
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["Not",["deleted","Eq",true]]"#);
+    }
+
+    #[test]
     fn test_in_serialization() {
         let f = Filter::r#in("status", vec!["active".into(), "pending".into()]);
         let json = serde_json::to_string(&f).unwrap();
         assert_eq!(json, r#"["status","In",["active","pending"]]"#);
+    }
+
+    #[test]
+    fn test_not_in_serialization() {
+        let f = Filter::not_in("status", vec!["deleted".into()]);
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["status","NotIn",["deleted"]]"#);
+    }
+
+    #[test]
+    fn test_contains_serialization() {
+        let f = Filter::contains("tags", "rust");
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["tags","Contains","rust"]"#);
+    }
+
+    #[test]
+    fn test_contains_any_serialization() {
+        let f = Filter::contains_any("tags", vec!["rust".into(), "go".into()]);
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["tags","ContainsAny",["rust","go"]]"#);
+    }
+
+    #[test]
+    fn test_glob_serialization() {
+        let f = Filter::glob("name", "a*");
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["name","Glob","a*"]"#);
+    }
+
+    #[test]
+    fn test_iglob_serialization() {
+        let f = Filter::iglob("name", "A*");
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["name","IGlob","A*"]"#);
+    }
+
+    #[test]
+    fn test_regex_serialization() {
+        let f = Filter::regex("email", r".*@.*\.com");
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["email","Regex",".*@.*\\.com"]"#);
+    }
+
+    #[test]
+    fn test_nested_logical_ops() {
+        let f = Filter::and(vec![
+            Filter::or(vec![
+                Filter::eq("a", 1),
+                Filter::eq("b", 2),
+            ]),
+            Filter::not(Filter::eq("c", 3)),
+        ]);
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(
+            json,
+            r#"["And",[["Or",[["a","Eq",1],["b","Eq",2]]],["Not",["c","Eq",3]]]]"#
+        );
+    }
+
+    #[test]
+    fn test_numeric_values() {
+        let f = Filter::eq("count", 42);
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["count","Eq",42]"#);
+
+        let f = Filter::eq("price", 19.99);
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["price","Eq",19.99]"#);
+    }
+
+    #[test]
+    fn test_null_value() {
+        let f = Filter::Eq { attr: "field".into(), value: serde_json::Value::Null };
+        let json = serde_json::to_string(&f).unwrap();
+        assert_eq!(json, r#"["field","Eq",null]"#);
     }
 }
