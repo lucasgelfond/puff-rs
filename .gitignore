@@ -1,3 +1,4 @@
 /other-clients
 /target
 Cargo.lock
+.env
