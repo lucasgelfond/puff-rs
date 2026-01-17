@@ -7,7 +7,7 @@ mod rank_by;
 pub mod responses;
 pub mod types;
 
-pub use client::Client;
+pub use client::{Client, NamespacesParams};
 pub use error::{Error, Result};
 pub use filter::{ContainsAllTokensParams, Filter};
 pub use namespace::Namespace;

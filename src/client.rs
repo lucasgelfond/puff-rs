@@ -1,6 +1,18 @@
-use crate::{Error, Namespace, Result};
+use crate::{Error, Namespace, NamespacesResponse, Result};
 
 const DEFAULT_BASE_URL: &str = "https://api.turbopuffer.com";
+
+#[derive(Debug, Clone, Default, serde::Serialize)]
+pub struct NamespacesParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prefix: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_size: Option<u32>,
+}
 
 pub struct Client {
     pub(crate) api_key: String,
@@ -54,6 +66,27 @@ impl Client {
 
     pub fn namespace(&self, name: impl Into<String>) -> Namespace<'_> {
         Namespace::new(self, name.into())
+    }
+
+    pub async fn namespaces(&self, params: NamespacesParams) -> Result<NamespacesResponse> {
+        let mut query_parts = Vec::new();
+        if let Some(ref prefix) = params.prefix {
+            query_parts.push(format!("prefix={}", prefix));
+        }
+        if let Some(ref cursor) = params.cursor {
+            query_parts.push(format!("cursor={}", cursor));
+        }
+        if let Some(page_size) = params.page_size {
+            query_parts.push(format!("page_size={}", page_size));
+        }
+
+        let path = if query_parts.is_empty() {
+            "/v1/namespaces".to_string()
+        } else {
+            format!("/v1/namespaces?{}", query_parts.join("&"))
+        };
+
+        self.request_no_body(reqwest::Method::GET, &path).await
     }
 
     pub(crate) async fn request<T, R>(&self, method: reqwest::Method, path: &str, body: Option<&T>) -> Result<R>
